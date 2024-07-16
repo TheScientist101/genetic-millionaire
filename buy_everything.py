@@ -1,5 +1,6 @@
 from model_base import ModelBase
 
+
 class BuyEverything(ModelBase):
     name = "buy everything"
 
