@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 
+
 class ModelBase(ABC):
     @abstractmethod
     def __init__(self, startingCash):
         pass
+
     @abstractmethod
     def calculateActions(self, day):
         pass
@@ -11,4 +13,3 @@ class ModelBase(ABC):
     @abstractmethod
     def accountHistory(self):
         pass
-
