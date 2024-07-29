@@ -14,22 +14,23 @@ class Simulator:
     def simulate(self, models, startingCash, interval='1d'):
         df = yf.download(self.tickers,
                          end=self.endDate,
-                         auto_adjust=True)
+                         auto_adjust=True,
+                         group_by='ticker')
         df.index = pd.to_datetime(df.index)
         values = {}
 
-        print(extractIndicators(df))
-
-        for model in models:
-            instance = model(startingCash)
-            for idx, day in df.iterrows():
-                instance.calculateActions(day)
-            values[model.name] = instance.accountHistory()
+        # for model in models:
+        #     instance = model(startingCash)
+        #     for idx, day in df.iterrows():
+        #         instance.calculateActions(day)
+        #     values[model.name] = instance.accountHistory()
         # histories = list(values.items())
         # for idx, history in enumerate(histories):
         #     print(idx)
         #     plt.plot(history[1], label=history[0])
 
-        plt.plot(extractIndicators(df))
+        for i in extractIndicators(df):
+            print(i)
+            plt.plot(i)
         plt.legend(loc='best')
         plt.show()

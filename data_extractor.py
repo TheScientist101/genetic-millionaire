@@ -1,52 +1,86 @@
 import pandas as pd
+import numpy as np
 from stock_indicators import indicators, Quote
 
 
-def calculate_derivative_oscillator(data, ticker, short_window=12,
-                                    long_window=26, signal_window=9):
-    # Calculate short-term and long-term moving averages
-    data['Short_MA'] = data['Close'][ticker].rolling(
-        window=short_window, min_periods=1).mean()
-    data['Long_MA'] = data['Close'][ticker].rolling(
-        window=long_window, min_periods=1).mean()
+def calculate_derivative_oscillator(quotes_list, index, NaNCount):
+    double_smoothed_rsi = indicators.get_ema(
+        [
+            Quote(date=r.date, close=r.rsi)
+            for r in indicators.get_rsi(quotes_list)
+        ],
+        5)
 
-    # Calculate the difference (fast - slow)
-    data['DOSC'] = data['Short_MA'] - data['Long_MA']
+    double_smoothed_rsi = [Quote(date=r.date, close=r.ema)
+                           for r in indicators.get_ema([
+                               Quote(date=r.date, close=r.ema)
+                               for r in double_smoothed_rsi
+                           ], 3)]
 
-    # Calculate the signal line (moving average of the difference)
-    data['Signal_Line'] = data['DOSC'].rolling(
-        window=signal_window, min_periods=1).mean()
+    signal_line = pd.Series(
+        [np.nan] * NaNCount + [
+            s.sma for s in indicators.get_sma(double_smoothed_rsi, 9)
+        ],
+        index=index
+    )
 
-    # Return the Derivative Oscillator values (DOSC)
-    return pd.DataFrame(data['DOSC'])
+    double_smoothed_rsi = pd.Series(
+        [np.nan] * NaNCount + [
+            float(r.close) for r in double_smoothed_rsi
+        ],
+        index=index
+    )
+
+    do = double_smoothed_rsi.sub(signal_line)
+    do.name = "DOSC"
+
+    return do
 
 
-def calculate_rsi(quotes_list, index):
-    rsi = pd.DataFrame(
-        [i.rsi for i in indicators.get_rsi(quotes_list)], index=index)
+def calculate_rsi(quotes_list, index, NaNCount):
+    rsi = pd.Series(
+        [np.nan] * NaNCount + [i.rsi for i in indicators.get_rsi(quotes_list)],
+        index=index)
+    rsi.name = "RSI"
     return rsi
 
 
-def calculate_macd(quotes_list, index):
-    macd = pd.DataFrame(
-        [i.macd for i in indicators.get_macd(quotes_list)], index)
+def calculate_macd(quotes_list, index, NaNCount):
+    macd = pd.Series(
+        [np.nan] * NaNCount + [
+            i.macd for i in indicators.get_macd(quotes_list)
+        ],
+        index=index)
+    macd.name = "MACD"
     return macd
 
 
 def extractIndicators(quotes):
-    ticker = 'AAPL'
-    quotes_list = [
-        Quote(d, o, h, l, c, v)
-        for d, o, h, l, c, v
-        in zip(quotes.index, quotes['Open'][ticker],
-               quotes['High'][ticker],
-               quotes['Low'][ticker],
-               quotes['Close'][ticker],
-               quotes['Volume'][ticker])
-    ]
+    results = []
+    for ticker in {q[0] for q in quotes.keys()}:
+        NaNCount = len(quotes) - quotes[ticker]['Close'].count()
+        specificQuotes = quotes[ticker][NaNCount:]
+        quotes_list = [
+            Quote(d, o, h, l, c, v)
+            for d, o, h, l, c, v
+            in zip(quotes.index[NaNCount:], specificQuotes['Open'],
+                   specificQuotes['High'],
+                   specificQuotes['Low'],
+                   specificQuotes['Close'],
+                   specificQuotes['Volume'])
+        ]
 
-    results = calculate_derivative_oscillator(quotes, ticker)
-    results.loc[:, "RSI"] = calculate_rsi(
-        quotes_list, quotes.index)
-    results.loc[:, "MACD"] = calculate_macd(quotes_list, quotes.index)
+        data = [
+            calculate_derivative_oscillator(
+                quotes_list, quotes.index, NaNCount),
+            calculate_rsi(
+                quotes_list, quotes.index, NaNCount),
+            calculate_macd(
+                quotes_list, quotes.index, NaNCount),
+            quotes[ticker]['Close']
+        ]
+        ticker_results = pd.DataFrame(data).transpose()
+        ticker_results.name = ticker
+        results.append(ticker_results)
+
     return results
