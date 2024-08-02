@@ -57,7 +57,8 @@ def calculate_macd(quotes_list, index, NaNCount):
 
 def extractIndicators(quotes):
     results = []
-    for ticker in {q[0] for q in quotes.keys()}:
+    tickers = {q[0] for q in quotes.keys()}
+    for ticker in tickers:
         NaNCount = len(quotes) - quotes[ticker]['Close'].count()
         specificQuotes = quotes[ticker][NaNCount:]
         quotes_list = [
@@ -83,4 +84,4 @@ def extractIndicators(quotes):
         ticker_results.name = ticker
         results.append(ticker_results)
 
-    return results
+    return pd.concat(results, keys=tickers).swaplevel(0, 1)

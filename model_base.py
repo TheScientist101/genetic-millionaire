@@ -7,7 +7,7 @@ class ModelBase(ABC):
         pass
 
     @abstractmethod
-    def calculateActions(self, day):
+    def calculateActions(self, indicators):
         pass
 
     @abstractmethod
