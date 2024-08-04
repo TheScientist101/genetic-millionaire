@@ -23,6 +23,10 @@ To install the required dependencies for this project, you should have Python 3.
     pip install -r requirements.txt
     ```
 
+4. **Install .NET SDK (required for stock_indicators library)**
+
+    https://dotnet.microsoft.com/en-us/download/visual-studio-sdks
+
 ## Usage
 
 1. **Set up parameters:**
