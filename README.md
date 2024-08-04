@@ -14,14 +14,9 @@ To install the required dependencies for this project, you should have Python 3.
     ```
 
 2. **Activate the virtual environment:**
-    - On Windows:
-        ```bash
-        venv\Scripts\activate
-        ```
-    - On macOS/Linux:
-        ```bash
-        source venv/bin/activate
-        ```
+    ```bash
+    source venv/bin/activate
+    ```
 
 3. **Install the required packages:**
     ```bash
