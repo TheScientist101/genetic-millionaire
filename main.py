@@ -62,15 +62,16 @@ for _ in range(generation_size):
     generation.append(random.sample(range(-100, 100), 9))
 
 for i in range(generations):
+    print(f"Generation {i + 1} / {generations}...")
     first, second, history = simulator.simulate(
         initial_amount, generation)
 
-    print("Generation " + str(i) + ": " + str(history[-1]))
+    print("Generation " + str(i + 1) + ": " + str(history.iloc[-1]))
 
     first_params = get_parameters(first)
 
     print("Parameters: ", first_params)
-    plt.plot(history, label="Generation " + str(i))
+    plt.plot(history, label="Generation " + str(i + 1))
 
     generation = crossover(
         first_params, get_parameters(second), generation_size)

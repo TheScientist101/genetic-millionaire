@@ -1,5 +1,6 @@
 from model_base import ModelBase
 import numpy as np
+import time
 
 
 class GeneticModel(ModelBase):
@@ -8,7 +9,7 @@ class GeneticModel(ModelBase):
     def __init__(self, startingCash, parameters):
         self.weights = parameters[:4]
         self.offsets = parameters[4:8]
-        self.threshold = parameters[8]
+        self.threshold = abs(parameters[8])
         self.cash = startingCash
         self.history = []
         self.assets = {}
@@ -31,16 +32,20 @@ class GeneticModel(ModelBase):
             price = day.loc[ticker]["Close"]
             if np.isnan(price):
                 continue
-            if favorability > self.threshold and self.cash > 0:
-                purchase_amount = min(
-                    favorability, self.cash / price)
-                self.assets[ticker] += purchase_amount
-                self.cash -= price * purchase_amount
 
             if favorability < 0:
                 sell_amount = min(-favorability, self.assets[ticker])
+                if sell_amount < 0:
+                    raise Exception(f"Trying to sell {sell_amount} shares of {ticker}")
                 self.assets[ticker] -= sell_amount
                 self.cash += price * sell_amount
+            elif favorability > self.threshold and self.cash > 0:
+                purchase_amount = min(
+                    favorability, self.cash / price)
+                if purchase_amount < 0:
+                    raise Exception(f"Trying to buy {purchase_amount} shares of {ticker}")
+                self.assets[ticker] += purchase_amount
+                self.cash -= price * purchase_amount
 
         value = 0
         for ticker in self.assets:

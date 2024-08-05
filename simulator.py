@@ -21,12 +21,15 @@ class Simulator:
             self.indicators = extractIndicators(self.data)
         value = {}
 
-        for parameters in parameter_set:
+        for i, parameters in enumerate(parameter_set):
             instance = GeneticModel(startingCash, parameters)
             value[instance] = []
+            print(f"Model {i + 1} / {len(parameter_set)}: {parameter_set}")
             for date in self.indicators.index.levels[0]:
                 day = self.indicators.loc[date]
                 value[instance].append(instance.calculateActions(day))
+            value[instance] = pd.Series(value[instance], index=self.data.index)
+            print(f"Model {i + 1} / {len(parameter_set)}: {value[instance].tail(1).item()}")
 
         # for model in value:
         #     value[model] = pd.DataFrame(value[model], index=self.data.index)
@@ -36,6 +39,6 @@ class Simulator:
         # plt.show()
 
         best = [model for model, _ in sorted(
-            value.items(), key=lambda x: x[1][-1], reverse=True)]
+            value.items(), key=lambda x: x[1].ilocn[-1], reverse=True)]
 
         return best[0], best[1], value[best[0]]

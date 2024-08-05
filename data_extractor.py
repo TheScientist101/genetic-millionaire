@@ -59,6 +59,7 @@ def extractIndicators(quotes):
     results = []
     tickers = {q[0] for q in quotes.keys()}
     for ticker in tickers:
+        print("Processing", ticker, "...")
         NaNCount = len(quotes) - quotes[ticker]['Close'].count()
         specificQuotes = quotes[ticker][NaNCount:]
         quotes_list = [
@@ -84,4 +85,5 @@ def extractIndicators(quotes):
         ticker_results.name = ticker
         results.append(ticker_results)
 
+    print("Done processing...")
     return pd.concat(results, keys=tickers).swaplevel(0, 1)
