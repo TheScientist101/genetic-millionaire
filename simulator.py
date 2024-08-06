@@ -49,8 +49,7 @@ class Simulator:
     
     def load_data(self):
         self.data = yf.download(self.tickers,
-                                    group_by='ticker',
-                                    start='2020-01-01',)
+                                    group_by='ticker')
         self.data.index = pd.to_datetime(self.data.index)
 
     def prepare_data(self):
@@ -63,7 +62,6 @@ class Simulator:
         plt.plot(value, label="Total Value")
         plt.legend(loc='best')
         os.makedirs(f"outputs/generation_{generation}", exist_ok=True)
-        plt_fig.show()
         # Save image
         plt.savefig(f"outputs/generation_{generation}/model_{model_num}.png")
         # Save pickle of figure
@@ -106,7 +104,6 @@ class Simulator:
                 for ticker in asset_history:
                     asset_history[ticker] = pd.Series(asset_history[ticker], index=self.data.index)
                     plt.plot(asset_history[ticker], label=ticker)
-                plt.plot(value[instance] - cash_history, label="Total Invested")
                 plt.plot(cash_history, label="Cash")
                 plt.legend(loc='best')
                 plt.show()

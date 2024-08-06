@@ -20,7 +20,7 @@ def main():
     generation_params = []
 
     for _ in range(generation_size):
-        generation_params.append(random.sample(range(-100, 100), 9))
+        generation_params.append(random.sample(range(-100, 100), 10))
 
     for i in range(generations):
         print(f"Generation {i + 1} / {generations}...")

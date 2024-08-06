@@ -10,17 +10,17 @@ class GeneticModel(ModelBase):
         self.weights = parameters[:4]
         self.offsets = parameters[4:8]
         self.threshold = abs(parameters[8])
+        self.sensitivity = abs(parameters[9])
     
-    @staticmethod
-    def normalize(favorability):
-        return math.atan(favorability) / (math.pi / 2)
+    def normalize(self, favorability):
+        return math.atan(favorability / self.sensitivity) / (math.pi / 2)
 
     def calculate_favorability(self, prices):
         adjusted = prices.sub(self.offsets)
         result = sum(np.multiply(self.weights, adjusted))
         if np.isnan(result):
             return 0
-        return GeneticModel.normalize(result)
+        return self.normalize(result)
 
     def calculate_actions(self, day, curr_cash, curr_assets):
         favorabilities = {}
