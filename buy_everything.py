@@ -10,7 +10,7 @@ class BuyEverything(ModelBase):
         self.assets = {}
 
     def calculateActions(self, day):
-        self.prices = day['Close'].to_dict()
+        self.prices = day['Adj Close'].to_dict()
         for key in self.prices:
             if key not in self.assets:
                 self.assets[key] = 0

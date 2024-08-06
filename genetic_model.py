@@ -1,61 +1,51 @@
 from model_base import ModelBase
+import math
 import numpy as np
-import time
 
 
 class GeneticModel(ModelBase):
     name = "genetic model"
 
-    def __init__(self, startingCash, parameters):
+    def __init__(self, parameters):
         self.weights = parameters[:4]
         self.offsets = parameters[4:8]
         self.threshold = abs(parameters[8])
-        self.cash = startingCash
-        self.history = []
-        self.assets = {}
+    
+    @staticmethod
+    def normalize(favorability):
+        return math.atan(favorability) / (math.pi / 2)
 
-    def calculateFavorability(self, prices):
+    def calculate_favorability(self, prices):
         adjusted = prices.sub(self.offsets)
         result = sum(np.multiply(self.weights, adjusted))
         if np.isnan(result):
             return 0
-        return result
+        return GeneticModel.normalize(result)
 
-    def calculateActions(self, day):
+    def calculate_actions(self, day, curr_cash, curr_assets):
         favorabilities = {}
         for ticker, prices in day.iterrows():
-            if ticker not in self.assets:
-                self.assets[ticker] = 0
-            favorabilities[ticker] = self.calculateFavorability(prices)
+            if ticker not in curr_assets:
+                curr_assets[ticker] = 0
+            favorabilities[ticker] = self.calculate_favorability(prices)
+
+        sell = {}
+        purchase = {}
 
         for ticker, favorability in sorted(favorabilities.items(), key=lambda x: x[1], reverse=True):
-            price = day.loc[ticker]["Close"]
+            price = day.loc[ticker]["Adj Close"]
             if np.isnan(price):
                 continue
 
-            if favorability < 0:
-                sell_amount = min(-favorability, self.assets[ticker])
-                if sell_amount < 0:
-                    raise Exception(f"Trying to sell {sell_amount} shares of {ticker}")
-                self.assets[ticker] -= sell_amount
-                self.cash += price * sell_amount
-            elif favorability > self.threshold and self.cash > 0:
-                purchase_amount = min(
-                    favorability, self.cash / price)
-                if purchase_amount < 0:
-                    raise Exception(f"Trying to buy {purchase_amount} shares of {ticker}")
-                self.assets[ticker] += purchase_amount
-                self.cash -= price * purchase_amount
+            if favorability < 0 and curr_assets[ticker] > 0:
+                sell_amount = -favorability * curr_assets[ticker]
+                curr_cash += sell_amount * price
+                sell[ticker] = sell_amount
+            elif curr_cash > 0 and favorability > 0:
+                purchase_amount = (curr_cash * favorability) / price
+                purchase_amount = math.floor(purchase_amount * 1000) / 1000
+                if purchase_amount > self.threshold:
+                    curr_cash -= purchase_amount * price
+                    purchase[ticker] = purchase_amount
 
-        value = 0
-        for ticker in self.assets:
-            if np.isnan(day.loc[ticker]["Close"]):
-                continue
-            value += self.assets[ticker] * day.loc[ticker]["Close"]
-
-        value += self.cash
-
-        return value
-
-    def accountHistory(self):
-        return self.history
+        return sell, purchase

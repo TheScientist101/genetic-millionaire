@@ -7,9 +7,5 @@ class ModelBase(ABC):
         pass
 
     @abstractmethod
-    def calculateActions(self, indicators):
-        pass
-
-    @abstractmethod
-    def accountHistory(self):
+    def calculate_actions(self, indicators):
         pass

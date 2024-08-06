@@ -3,23 +3,42 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 
-generation_size = 10
-initial_amount = 100_000
-generations = 10
-tickers = []
+def main():
+    generation_size = 10
+    initial_amount = 100_000
+    generations = 10
+    tickers = []
 
-with open("tickers.txt", "r") as f:
-    tickers = f.readlines()
+    with open("tickers.txt", "r") as f:
+        tickers = f.readlines()
 
-for i, ticker in enumerate(tickers):
-    tickers[i] = ticker.strip()
+    for i, ticker in enumerate(tickers):
+        tickers[i] = ticker.strip()
 
-# To make it easier to process
-tickers = tickers[:200]
+    simulator = Simulator(tickers)
 
-simulator = Simulator(tickers)
+    generation_params = []
 
-generation = []
+    for _ in range(generation_size):
+        generation_params.append(random.sample(range(-100, 100), 9))
+
+    for i in range(generations):
+        print(f"Generation {i + 1} / {generations}...")
+        first, second, history = simulator.simulate(
+            initial_amount, generation_params, generation=i + 1)
+
+        print("Generation " + str(i + 1) + ": " + str(history.iloc[-1]))
+
+        first_params = get_parameters(first)
+
+        print("Parameters: ", first_params)
+        plt.plot(history, label="Generation " + str(i + 1))
+
+        generation_params = crossover(
+            first_params, get_parameters(second), generation_size)
+
+    plt.legend(loc='best')
+    plt.show()
 
 
 def crossover(first, second, generation_size):
@@ -51,30 +70,11 @@ def crossover(first, second, generation_size):
 
 
 def get_parameters(model):
-    parameters = model.weights
+    parameters = model.weights.copy()
     parameters += model.offsets
     parameters.append(model.threshold)
 
     return parameters
 
-
-for _ in range(generation_size):
-    generation.append(random.sample(range(-100, 100), 9))
-
-for i in range(generations):
-    print(f"Generation {i + 1} / {generations}...")
-    first, second, history = simulator.simulate(
-        initial_amount, generation)
-
-    print("Generation " + str(i + 1) + ": " + str(history.iloc[-1]))
-
-    first_params = get_parameters(first)
-
-    print("Parameters: ", first_params)
-    plt.plot(history, label="Generation " + str(i + 1))
-
-    generation = crossover(
-        first_params, get_parameters(second), generation_size)
-
-plt.legend(loc='best')
-plt.show()
+if __name__ == "__main__":
+    main()
