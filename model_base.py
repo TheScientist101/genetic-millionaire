@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 class ModelBase(ABC):
     @abstractmethod
-    def __init__(self, startingCash):
+    def __init__(self, volumes):
         pass
 
     @abstractmethod

@@ -15,10 +15,10 @@ class Simulator:
         self.tickers = tickers
         self.data = None
         self.indicators = None
+        self.volumes = {}
     
     # Simulate all actions in a day
-    @staticmethod
-    def execute_actions(sell, purchase, cash, assets, day, logging, date):
+    def execute_actions(self, sell, purchase, cash, assets, day, logging, date):
         # Sell first because selling can increase cash allowance
         for ticker in sell:
             if sell[ticker] < 0:
@@ -34,6 +34,8 @@ class Simulator:
         for ticker in purchase:
             if purchase[ticker] < 0:
                 raise Exception(f"Cannot purchase negative amount of {ticker}, tried to purchase: {purchase[ticker]}")
+            if purchase[ticker] + assets[ticker] > self.volumes[ticker]:
+                raise Exception(f"Cannot purchase more than {self.volumes[ticker] - assets[ticker]} of {ticker}, tried to purchase: {purchase[ticker]}")
             if day.loc[ticker]['Adj Close'] * purchase[ticker] > cash:
                 raise Exception(f"Cannot purchase more than {cash / day.loc[ticker]['Adj Close']} of {ticker}, tried to purchase: {purchase[ticker]}")
             assets[ticker] += purchase[ticker]
@@ -63,6 +65,11 @@ class Simulator:
                                     group_by='ticker')
         self.data.index = pd.to_datetime(self.data.index)
 
+        # Extract volumes for each ticker
+        yf_data = yf.Tickers(self.tickers)
+        for ticker in self.tickers:
+            self.volumes[ticker] = yf_data.tickers[ticker].info["volume"]
+
     # Extract indicators from data
     def prepare_data(self):
         self.indicators = extract_indicators(self.data)
@@ -86,7 +93,7 @@ class Simulator:
     # Simulate each model in provided models
     def simulate_model(self, parameters, starting_cash, extra_data, generation, index):
         # Create instance with parameters
-        instance = GeneticModel(parameters)
+        instance = GeneticModel(parameters, self.volumes.copy())
 
         # History of values created with calculate_value
         value = []
@@ -110,7 +117,7 @@ class Simulator:
             sell, purchase = instance.calculate_actions(day, cash, assets)
 
             # Execute actions
-            cash, assets = Simulator.execute_actions(sell, purchase, cash, assets, day, extra_data, date)
+            cash, assets = self.execute_actions(sell, purchase, cash, assets, day, extra_data, date)
             cash_history.append(cash)
 
             # Log assets to history if enabled
@@ -118,7 +125,7 @@ class Simulator:
                 for ticker in assets:
                     if ticker not in asset_history:
                         asset_history[ticker] = []
-                    asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Adj Close"])
+                    asset_history[ticker].append(assets[ticker])
             
             # Append to value history
             value.append(Simulator.calculate_value(cash, assets, day))
@@ -129,10 +136,12 @@ class Simulator:
 
         # Asset History plotting if enabled
         if extra_data:
+            print("Cash", cash)
+            plt.plot(cash_history, label="Cash")
             for ticker in asset_history:
                 asset_history[ticker] = pd.Series(asset_history[ticker], index=self.data.index)
+                print(ticker, assets[ticker])
                 plt.plot(asset_history[ticker], label=ticker)
-            plt.plot(cash_history, label="Cash")
             plt.legend(loc='best')
             plt.show()
         
@@ -176,4 +185,4 @@ class Simulator:
             value.items(), key=lambda x: x[1].iloc[-1], reverse=True)]
 
         # Return best two values
-        return best[0], best[1], value[best[0]]
+        return best[:2], value[best[0]]

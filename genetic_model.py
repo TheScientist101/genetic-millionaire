@@ -5,7 +5,7 @@ import numpy as np
 
 class GeneticModel(ModelBase):
     # Extract weights, offsets, threshold, and sensitivity from parameters
-    def __init__(self, parameters):
+    def __init__(self, parameters, volumes):
         self.weights = parameters[:4]
         self.offsets = parameters[4:8]
         self.threshold = abs(parameters[8])
@@ -14,6 +14,8 @@ class GeneticModel(ModelBase):
         # Avoid division by 0 error
         if self.sensitivity == 0:
             self.sensitivity = 1
+        
+        self.volumes = volumes
     
     # Sigmoid function using arctan, returns value between -1 and 1
     def normalize(self, favorability):
@@ -69,7 +71,8 @@ class GeneticModel(ModelBase):
                 # Purchase favorability percent of current cash of ticker
                 # TODO: Find a more responsible usage of favorability purchasing
                 purchase_amount = (curr_cash * favorability) / price
-                purchase_amount = math.floor(purchase_amount * 1000) / 1000
+                purchase_amount = min(purchase_amount, self.volumes[ticker] - curr_assets[ticker])
+                purchase_amount = round(purchase_amount - 0.5, 1)
                 if purchase_amount > self.threshold:
                     curr_cash -= purchase_amount * price
                     purchase[ticker] = purchase_amount

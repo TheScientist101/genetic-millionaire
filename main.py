@@ -29,8 +29,12 @@ def main():
         print(f"Generation {i + 1} / {generations}...")
 
         # Simulate
-        first, second, history = simulator.simulate(
+        best, history = simulator.simulate(
             initial_amount, generation_params, generation=i + 1)
+        
+        first = best[0]
+
+        second = best[1]
 
         print("Generation " + str(i + 1) + ": " + str(history.iloc[-1]))
 
