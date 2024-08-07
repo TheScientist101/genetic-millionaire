@@ -6,6 +6,8 @@ from data_extractor import extract_indicators
 from genetic_model import GeneticModel
 import os
 import pickle
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 
 class Simulator:
     def __init__(self, tickers):
@@ -68,8 +70,41 @@ class Simulator:
         with open(f"outputs/generation_{generation}/model_{model_num}.pkl", "wb") as f:
             pickle.dump(plt_fig, f)
         plt.close()
+        
+    def simulate_model(self, parameters, starting_cash, extra_data, generation, index):
+        instance = GeneticModel(parameters)
+        value = []
+        assets = {}
+        if extra_data:
+            asset_history = {}
+        cash = starting_cash
+        cash_history = []
+        print(f"Model {index + 1}: {parameters}")
+        for date in self.indicators.index.levels[0]:
+            day = self.indicators.loc[date]
+            sell, purchase = instance.calculate_actions(day, cash, assets)
+            cash, assets = Simulator.execute_actions(sell, purchase, cash, assets, day, extra_data, date)
+            cash_history.append(cash)
+            if extra_data:
+                for ticker in assets:
+                    if ticker not in asset_history:
+                        asset_history[ticker] = []
+                    asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Adj Close"])
+            value.append(Simulator.calculate_value(cash, assets, day))
+        value = pd.Series(value, index=self.data.index)
+        cash_history = pd.Series(cash_history, index=self.data.index)
+        if extra_data:
+            for ticker in asset_history:
+                asset_history[ticker] = pd.Series(asset_history[ticker], index=self.data.index)
+                plt.plot(asset_history[ticker], label=ticker)
+            plt.plot(cash_history, label="Cash")
+            plt.legend(loc='best')
+            plt.show()
+        self.save_plots(value, cash_history, generation, index + 1)
+        print(f"Model {index + 1}: {value.iloc[-1]}")
+        return instance, value
 
-    def simulate(self, starting_cash, parameter_set, generation='none', extra_data=False):
+    def simulate(self, starting_cash, parameter_set, generation='none', extra_data=False, use_processes=True):
         if self.data is None:
             self.load_data()
         
@@ -77,38 +112,24 @@ class Simulator:
             self.prepare_data()
 
         value = {}
+        if use_processes:
+            # Use ProcessPoolExecutor to run simulations in parallel across multiple cores
+            with ProcessPoolExecutor() as executor:
+                # Start each simulation in a separate process
+                futures = [
+                    executor.submit(self.simulate_model, parameters, starting_cash, extra_data, generation, i)
+                    for i, parameters in enumerate(parameter_set)
+                ]
 
-        for i, parameters in enumerate(parameter_set):
-            instance = GeneticModel(parameters)
-            value[instance] = []
-            assets = {}
-            if extra_data:
-                asset_history = {}
-            cash = starting_cash
-            cash_history = []
-            print(f"Model {i + 1} / {len(parameter_set)}: {parameters}")
-            for date in self.indicators.index.levels[0]:
-                day = self.indicators.loc[date]
-                sell, purchase = instance.calculate_actions(day, cash, assets)
-                cash, assets = Simulator.execute_actions(sell, purchase, cash, assets, day, extra_data, date)
-                cash_history.append(cash)
-                if extra_data:
-                    for ticker in assets:
-                        if ticker not in asset_history:
-                            asset_history[ticker] = []
-                        asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Adj Close"])
-                value[instance].append(Simulator.calculate_value(cash, assets, day))
-            value[instance] = pd.Series(value[instance], index=self.data.index)
-            cash_history = pd.Series(cash_history, index=self.data.index)
-            if extra_data:
-                for ticker in asset_history:
-                    asset_history[ticker] = pd.Series(asset_history[ticker], index=self.data.index)
-                    plt.plot(asset_history[ticker], label=ticker)
-                plt.plot(cash_history, label="Cash")
-                plt.legend(loc='best')
-                plt.show()
-            self.save_plots(value[instance], cash_history, generation, i + 1)
-            print(f"Model {i + 1} / {len(parameter_set)}: {value[instance].iloc[-1]}")
+                # Collect results as they complete
+                for future in as_completed(futures):
+                    instance, model_value = future.result()
+                    value[instance] = model_value
+        else:
+            # Run simulations sequentially
+            for i, parameters in enumerate(parameter_set):
+                instance, model_value = self.simulate_model(parameters, starting_cash, extra_data, generation, i)
+                value[instance] = model_value
 
         best = [model for model, _ in sorted(
             value.items(), key=lambda x: x[1].iloc[-1], reverse=True)]

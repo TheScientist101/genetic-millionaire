@@ -73,6 +73,7 @@ def get_parameters(model):
     parameters = model.weights.copy()
     parameters += model.offsets
     parameters.append(model.threshold)
+    parameters.append(model.sensitivity)
 
     return parameters
 

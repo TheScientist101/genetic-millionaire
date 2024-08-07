@@ -11,6 +11,8 @@ class GeneticModel(ModelBase):
         self.offsets = parameters[4:8]
         self.threshold = abs(parameters[8])
         self.sensitivity = abs(parameters[9])
+        if self.sensitivity == 0:
+            self.sensitivity = 1
     
     def normalize(self, favorability):
         return math.atan(favorability / self.sensitivity) / (math.pi / 2)

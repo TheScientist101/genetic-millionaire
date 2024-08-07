@@ -15,7 +15,7 @@ with open("tickers.txt", "r") as f:
 for i, ticker in enumerate(tickers):
     tickers[i] = ticker.strip()
 
-config = [-70, 40, -60, -83, -36, -47, 13, 80, -26, 1]
+config = [-64, 64, -16, -24, 2, 75, 88, -22, 29, 18]
 
 simulator = Simulator(tickers)
-first, second, history = simulator.simulate(initial_amount, [config, config], extra_data=True)
+first, second, history = simulator.simulate(initial_amount, [config, config], extra_data=True, use_processes=False)
