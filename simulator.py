@@ -125,7 +125,7 @@ class Simulator:
                 for ticker in assets:
                     if ticker not in asset_history:
                         asset_history[ticker] = []
-                    asset_history[ticker].append(assets[ticker])
+                    asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Adj Close"])
             
             # Append to value history
             value.append(Simulator.calculate_value(cash, assets, day))
