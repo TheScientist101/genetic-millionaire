@@ -62,7 +62,6 @@ class GeneticModel(ModelBase):
             # Sell if negative favorability and is owned
             if favorability < 0 and curr_assets[ticker] > 0:
                 # Sell favorability percent of owned asset of ticker
-                # TODO: Potentially use threshold (or other threshold) to sell all if we have a little of a stock
                 sell_amount = -favorability * curr_assets[ticker]
                 curr_cash += sell_amount * price
                 sell[ticker] = sell_amount
@@ -71,7 +70,7 @@ class GeneticModel(ModelBase):
                 # Purchase favorability percent of current cash of ticker
                 # TODO: Find a more responsible usage of favorability purchasing
                 purchase_amount = (curr_cash * favorability) / price
-                purchase_amount = min(purchase_amount, self.volumes[ticker] - curr_assets[ticker])
+                purchase_amount = min(purchase_amount, self.volumes[ticker] * 0.05 - curr_assets[ticker])
                 purchase_amount = round(purchase_amount - 0.5, 1)
                 if purchase_amount > self.threshold:
                     curr_cash -= purchase_amount * price

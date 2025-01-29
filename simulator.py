@@ -15,7 +15,7 @@ class Simulator:
         self.tickers = tickers
         self.data = None
         self.indicators = None
-        self.volumes = {}
+        self.shares_outstanding = {}
     
     # Simulate all actions in a day
     def execute_actions(self, sell, purchase, cash, assets, day, logging, date):
@@ -25,6 +25,10 @@ class Simulator:
                 raise Exception(f"Cannot sell negative amount of {ticker}, tried to sell: {sell[ticker]}")
             if sell[ticker] > assets[ticker]:
                 raise Exception(f"Cannot sell more than {assets[ticker]} of {ticker}, tried to sell: {sell[ticker]}")
+            if sell[ticker] < 0.1:
+                continue
+            if assets[ticker] - sell[ticker] < 0.1:
+                sell[ticker] = assets[ticker]
             assets[ticker] -= sell[ticker]
             cash += day.loc[ticker]["Adj Close"] * sell[ticker]
             if sell[ticker] > 0 and logging:
@@ -34,10 +38,12 @@ class Simulator:
         for ticker in purchase:
             if purchase[ticker] < 0:
                 raise Exception(f"Cannot purchase negative amount of {ticker}, tried to purchase: {purchase[ticker]}")
-            if purchase[ticker] + assets[ticker] > self.volumes[ticker]:
-                raise Exception(f"Cannot purchase more than {self.volumes[ticker] - assets[ticker]} of {ticker}, tried to purchase: {purchase[ticker]}")
+            if purchase[ticker] + assets[ticker] > self.shares_outstanding[ticker] * 0.05:
+                raise Exception(f"Cannot purchase more than {self.shares_outstanding[ticker] * 0.05 - assets[ticker]} of {ticker}, tried to purchase: {purchase[ticker]}")
             if day.loc[ticker]['Adj Close'] * purchase[ticker] > cash:
                 raise Exception(f"Cannot purchase more than {cash / day.loc[ticker]['Adj Close']} of {ticker}, tried to purchase: {purchase[ticker]}")
+            if purchase[ticker] < 0.1:
+                continue
             assets[ticker] += purchase[ticker]
             cash -= day.loc[ticker]["Adj Close"] * purchase[ticker]
             if purchase[ticker] > 0 and logging:
@@ -68,7 +74,12 @@ class Simulator:
         # Extract volumes for each ticker
         yf_data = yf.Tickers(self.tickers)
         for ticker in self.tickers:
-            self.volumes[ticker] = yf_data.tickers[ticker].info["volume"]
+            print(f"Retrieving additional data for {ticker}...")
+            try:
+                self.shares_outstanding[ticker] = yf_data.tickers[ticker].info["sharesOutstanding"]
+            except KeyError:
+                print(f"Could not find shares outstanding for {ticker}. Ignoring {ticker}.")
+                self.shares_outstanding[ticker] = 0
 
     # Extract indicators from data
     def prepare_data(self):
@@ -93,7 +104,7 @@ class Simulator:
     # Simulate each model in provided models
     def simulate_model(self, parameters, starting_cash, extra_data, generation, index):
         # Create instance with parameters
-        instance = GeneticModel(parameters, self.volumes.copy())
+        instance = GeneticModel(parameters, self.shares_outstanding.copy())
 
         # History of values created with calculate_value
         value = []
@@ -136,12 +147,14 @@ class Simulator:
 
         # Asset History plotting if enabled
         if extra_data:
-            print("Cash", cash)
+            print()
             plt.plot(cash_history, label="Cash")
             for ticker in asset_history:
                 asset_history[ticker] = pd.Series(asset_history[ticker], index=self.data.index)
                 print(ticker, assets[ticker])
                 plt.plot(asset_history[ticker], label=ticker)
+            print("Cash", cash)
+            print("Total Value", value.iloc[-1])
             plt.legend(loc='best')
             plt.show()
         

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 def main():
     # Configuration Parameters
     generation_size = 10
-    initial_amount = 100_000
+    initial_amount = 100
     generations = 10
     tickers = []
 
