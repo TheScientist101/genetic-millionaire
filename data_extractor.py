@@ -46,12 +46,12 @@ def extract_indicators(quotes):
 
         data = [
             calculate_derivative_oscillator(
-                quotes[ticker]['Adj Close'], quotes.index),
+                quotes[ticker]['Close'], quotes.index),
             calculate_rsi(
-                quotes[ticker]['Adj Close'], quotes.index),
+                quotes[ticker]['Close'], quotes.index),
             calculate_macd(
-                quotes[ticker]['Adj Close'], quotes.index),
-            quotes[ticker]['Adj Close']
+                quotes[ticker]['Close'], quotes.index),
+            quotes[ticker]['Close']
         ]
 
         ticker_results = pd.DataFrame(data).transpose()

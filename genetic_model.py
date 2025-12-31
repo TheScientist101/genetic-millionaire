@@ -53,7 +53,7 @@ class GeneticModel(ModelBase):
         # Execute in order of most favorable
         # TODO: Execute negative favorabilities first (for more cash allowance)
         for ticker, favorability in sorted(favorabilities.items(), key=lambda x: x[1], reverse=True):
-            price = day.loc[ticker]["Adj Close"]
+            price = day.loc[ticker]["Close"]
 
             # Ignore ticker if price is unknown
             if np.isnan(price):

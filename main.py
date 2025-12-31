@@ -2,15 +2,35 @@ from simulator import Simulator
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
 def main():
-    # Configuration Parameters
-    generation_size = 10
-    initial_amount = 100
-    generations = 10
-    tickers = []
+    parser = argparse.ArgumentParser(description="A program that simulates a genetic algorithm for stock trading.")
+    
+    parser.add_argument('--generation-size', type=int, default=10, 
+                       help='Number of individuals in each generation (default: 10)')
+    parser.add_argument('--initial-cash', type=float, default=100, 
+                       help='Initial cash amount (default: 100)')
+    parser.add_argument('--generations', type=int, default=10, 
+                       help='Number of generations to simulate (default: 10)')
+    parser.add_argument('--start-date', type=str, default='2000-01-01', 
+                       help='Start date for simulation (format: YYYY-MM-DD, default: 2000-01-01)')
+    parser.add_argument('--end-date', type=str, default='2010-01-01', 
+                       help='End date for simulation (format: YYYY-MM-DD, default: 2010-01-01)')
+    parser.add_argument('--tickers-file', type=str, default='tickers.txt', 
+                        help='Path to the tickers file (default: tickers.txt)')
 
-    with open("tickers.txt", "r") as f:
+    args = parser.parse_args()
+
+    # Configuration Parameters
+    generation_size = args.generation_size
+    initial_cash = args.initial_cash
+    generations = args.generations
+    tickers = []
+    start_date = args.start_date
+    end_date = args.end_date
+
+    with open(args.tickers_file, "r") as f:
         tickers = f.readlines()
 
     for i, ticker in enumerate(tickers):
@@ -30,7 +50,7 @@ def main():
 
         # Simulate
         best, history = simulator.simulate(
-            initial_amount, generation_params, generation=i + 1)
+            initial_cash, generation_params, generation=i + 1, start_date=start_date, end_date=end_date)
         
         first = best[0]
 

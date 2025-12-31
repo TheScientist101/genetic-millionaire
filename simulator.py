@@ -30,9 +30,9 @@ class Simulator:
             if assets[ticker] - sell[ticker] < 0.1:
                 sell[ticker] = assets[ticker]
             assets[ticker] -= sell[ticker]
-            cash += day.loc[ticker]["Adj Close"] * sell[ticker]
+            cash += day.loc[ticker]["Close"] * sell[ticker]
             if sell[ticker] > 0 and logging:
-                print(f"{date}: Sold {sell[ticker]} of {ticker} at {day.loc[ticker]['Adj Close']}")
+                print(f"{date}: Sold {sell[ticker]} of {ticker} at {day.loc[ticker]['Close']}")
         
         # Execute purchases
         for ticker in purchase:
@@ -40,14 +40,14 @@ class Simulator:
                 raise Exception(f"Cannot purchase negative amount of {ticker}, tried to purchase: {purchase[ticker]}")
             if purchase[ticker] + assets[ticker] > self.shares_outstanding[ticker] * 0.05:
                 raise Exception(f"Cannot purchase more than {self.shares_outstanding[ticker] * 0.05 - assets[ticker]} of {ticker}, tried to purchase: {purchase[ticker]}")
-            if day.loc[ticker]['Adj Close'] * purchase[ticker] > cash:
-                raise Exception(f"Cannot purchase more than {cash / day.loc[ticker]['Adj Close']} of {ticker}, tried to purchase: {purchase[ticker]}")
+            if day.loc[ticker]['Close'] * purchase[ticker] > cash:
+                raise Exception(f"Cannot purchase more than {cash / day.loc[ticker]['Close']} of {ticker}, tried to purchase: {purchase[ticker]}")
             if purchase[ticker] < 0.1:
                 continue
             assets[ticker] += purchase[ticker]
-            cash -= day.loc[ticker]["Adj Close"] * purchase[ticker]
+            cash -= day.loc[ticker]["Close"] * purchase[ticker]
             if purchase[ticker] > 0 and logging:
-                print(f"{date}: Bought {purchase[ticker]} of {ticker} at {day.loc[ticker]['Adj Close']}")
+                print(f"{date}: Bought {purchase[ticker]} of {ticker} at {day.loc[ticker]['Close']}")
         
         # Return newly adjusted cash amount and assets dict
         return cash, assets
@@ -57,18 +57,20 @@ class Simulator:
     def calculate_value(cash, assets, day):
         value = 0
         for ticker in assets:
-            if np.isnan(day.loc[ticker]["Adj Close"]):
+            if np.isnan(day.loc[ticker]["Close"]):
                 continue
-            value += assets[ticker] * day.loc[ticker]["Adj Close"]
+            value += assets[ticker] * day.loc[ticker]["Close"]
 
         value += cash
 
         return value
     
     # Download data from Yahoo finance and replace index with pd.datetime index
-    def load_data(self):
+    def load_data(self, start_date='2000-01-01', end_date='2010-01-01'):
         self.data = yf.download(self.tickers,
-                                    group_by='ticker')
+                                    group_by='ticker',
+                                    start=start_date,
+                                    end=end_date)
         self.data.index = pd.to_datetime(self.data.index)
 
         # Extract volumes for each ticker
@@ -136,7 +138,7 @@ class Simulator:
                 for ticker in assets:
                     if ticker not in asset_history:
                         asset_history[ticker] = []
-                    asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Adj Close"])
+                    asset_history[ticker].append(assets[ticker] * day.loc[ticker]["Close"])
             
             # Append to value history
             value.append(Simulator.calculate_value(cash, assets, day))
@@ -164,9 +166,9 @@ class Simulator:
         return instance, value
 
     # Simulate set of models
-    def simulate(self, starting_cash, parameter_set, generation='none', extra_data=False, use_processes=True):
+    def simulate(self, starting_cash, parameter_set, generation='none', extra_data=False, use_processes=True, start_date='2000-01-01', end_date='2010-01-01'):
         if self.data is None:
-            self.load_data()
+            self.load_data(start_date=start_date, end_date=end_date)
         
         if self.indicators is None:
             self.prepare_data()
