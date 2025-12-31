@@ -3,7 +3,7 @@ from simulator import Simulator
 import argparse
 import ast
 
-parser = argparse.ArgumentParser(description="Debug a single trading configuration.")
+parser = argparse.ArgumentParser(description="Run a single trading configuration over a custom date range and ticker set.")
 parser.add_argument('config', type=str, 
                    help='Configuration parameters as a list, e.g., "[6, -94, -29, 21, -26, 74, 72, 46, 64, 7]"')
 parser.add_argument('--initial-cash', type=float, default=100, 
